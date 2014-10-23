@@ -1,21 +1,28 @@
-function getData () {
-  var data = "";
-  for(var lc=0; lc<999; lc++) {
-    data += Math.random();
+Posts = new Mongo.Collection('posts');
+
+if(Meteor.isServer) {
+  var postCount = Posts.find().count();
+  if(postCount < 300) {
+    var insertCount = 300 - postCount;
+    var bigStr = Random.id(999);
+    for(var lc=0; lc<postCount; lc++) {
+      Posts.insert({content: bigStr});
+    }
   }
 
-  return {data: data};
-}
+  Meteor.publish('posts', function() {
+    return Posts.find();
+  });
 
 
-function stringifyIt (data) {
-  for(var lc=0; lc<999; lc++) {
-    data.data += lc;
+  // load testing myself
+  createClinet();
+
+  function createClinet() {
+    var client = DDP.connect(process.env.ROOT_URL);
+    client.subscribe('posts', function() {
+      client.disconnect();
+      createClinet();
+    });
   }
-  return JSON.stringify(data);
 }
-
-setInterval(function repeatedTask() {
-  var data = getData();
-  var stringVersion = stringifyIt(data);
-}, 1);
